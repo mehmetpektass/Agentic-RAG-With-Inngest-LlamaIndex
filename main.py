@@ -41,6 +41,10 @@ async def rag_ingest_pdf(ctx: inngest.Context):
         QdrantStorage().upsert(ids, vecs, payloads)
         return RAGUpsertResult(ingested=len(chunks))
     
+    chunks_and_src = await ctx.step.run("load-and-chunk", lambda: _load(ctx), output_type=RAGChunkAndSrc)
+    ingested = await ctx.step.run("embed-and-upsert", lambda: _upsert(chunks_and_src), output_type=RAGUpsertResult)
+    return ingested.model_dump()
+    
 app = FastAPI()
 
 inngest.fast_api.serve(app, inngest_client, [rag_ingest_pdf])    
