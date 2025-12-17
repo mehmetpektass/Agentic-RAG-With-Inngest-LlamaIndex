@@ -28,7 +28,7 @@ class QdrantStorage:
         sources = set()
         
         for i in resuls:
-            payload = getattr(i, "payload",None) or {}
+            payload = getattr(i, "payload", None) or {}
             text = payload.get("text", "")
             source = payload.get("source", "")
             if text:
