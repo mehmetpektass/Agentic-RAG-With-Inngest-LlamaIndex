@@ -1,12 +1,12 @@
-from groq import Groq
 from dotenv import load_dotenv
 from llama_index.readers.file import PDFReader
 from llama_index.core.node_parser import SentenceSplitter
+import cohere
+import os
 
 load_dotenv()
 
-client = Groq()
-EMBED_MODEL = "nomic-embed-text-v1_5"
+co = cohere.Client(os.getenv("COHERE_API_KEY"))
 
 splitter = SentenceSplitter(chunk_size=1000, chunk_overlap=200)
 
@@ -19,9 +19,10 @@ def load_and_chunk_pdf(path:str):
     return chunks
 
 def embed_text(texts: list[str]) -> list[list[float]]:
-    response = client.embeddings.create(
-        model=EMBED_MODEL,
-        input=texts
+    response = co.embed(
+        texts=texts,
+        model="embed-multilingual-v3.0",
+        input_type="search_document"
     )
-    return [i.embedding for i in response.data]
+    return response.embeddings
     
