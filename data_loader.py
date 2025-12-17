@@ -10,7 +10,7 @@ EMBED_MODEL = "nomic-embed-text-v1_5"
 
 splitter = SentenceSplitter(chunk_size=1000, chunk_overlap=200)
 
-def load_pdf(path:str):
+def load_and_chunk_pdf(path:str):
     docs = PDFReader().load_data(file=path)
     text = [i.text for i in docs if getattr(i, "text", None)]
     chunks = []
