@@ -25,4 +25,12 @@ def embed_text(texts: list[str]) -> list[list[float]]:
         input_type="search_document"
     )
     return response.embeddings
+
+def embed_query_text(texts: list[str]) -> list[list[float]]:
+    response = co.embed(
+        texts=texts,
+        model="embed-multilingual-v3.0",
+        input_type="search_query"
+    )
+    return response.embeddings
     
