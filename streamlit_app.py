@@ -4,7 +4,6 @@ import sys
 import time
 from datetime import datetime
 
-# Backend modüllerini import et
 sys.path.append('.')
 from data_loader import load_and_chunk_pdf, embed_text, embed_query_text
 from vector_db import QdrantStorage
@@ -15,7 +14,6 @@ import requests
 
 load_dotenv()
 
-# Page config
 st.set_page_config(
     page_title="Enterprise AI Assistant",
     page_icon="🤖",
@@ -23,7 +21,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- MODERN VE MINIMALIST CSS (Claude/OpenAI Tarzı) ---
 st.markdown("""
     <style>
     /* 1. GENEL AYARLAR: Font ve Arka Plan */
@@ -153,18 +150,11 @@ with st.sidebar:
             with st.spinner("Processing document..."):
                 progress_bar = st.progress(0)
                 
-                # --- DÜZELTME BURADA BAŞLIYOR ---
-                # 1. ADIM: TEMİZLİK (Eski verileri sil)
                 try:
-                    # QdrantStorage'ı başlat ve koleksiyonu sıfırla
-                    # Not: "docs" senin vector_db.py dosyasındaki varsayılan koleksiyon ismin olmalı.
                     store = QdrantStorage()
                     store.client.delete_collection("docs")
-                    # Silindikten sonra upsert işlemi koleksiyonu otomatik yeniden oluşturacaktır.
                 except Exception as e:
-                    # Koleksiyon zaten yoksa veya silinemezse devam et
                     pass
-                # --- DÜZELTME BURADA BİTİYOR ---
 
                 # Save file
                 temp_path = f"temp_{uploaded_file.name}"
@@ -177,7 +167,7 @@ with st.sidebar:
                 chunks = load_and_chunk_pdf(temp_path)
                 progress_bar.progress(40)
                 
-                # Embed (Değişken ismi korundu)
+                # Embed
                 vecs = embed_text(chunks) 
                 progress_bar.progress(60)
                 
@@ -185,9 +175,7 @@ with st.sidebar:
                 ids = [str(uuid.uuid5(uuid.NAMESPACE_URL, f"{temp_path}: {i}")) for i in range(len(chunks))]
                 payloads = [{"source": temp_path, "text": chunks[i]} for i in range(len(chunks))]
                 
-                # Upsert (Veri tabanına yazma)
-                # Not: Eğer upsert hata verirse, delete_collection sonrası create_collection gerekebilir.
-                # Genelde QdrantStorage içinde bu kontrol vardır. Eğer yoksa aşağıda yazacağım.
+                
                 QdrantStorage().upsert(ids, vecs, payloads)
                 
                 # Complete
@@ -216,7 +204,6 @@ with st.sidebar:
 
 # Main Chat Area
 if not st.session_state.pdf_processed:
-    # Boş Durum (Welcome Screen) - Minimalist Merkez
     st.markdown("""
     <div style='text-align: center; margin-top: 100px;'>
         <h1 style='font-size: 3rem;'>How can I help you today?</h1>
@@ -226,7 +213,6 @@ if not st.session_state.pdf_processed:
     </div>
     """, unsafe_allow_html=True)
     
-    # Örnek kartlar
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown("""
@@ -251,37 +237,29 @@ if not st.session_state.pdf_processed:
         """, unsafe_allow_html=True)
 
 else:
-    # Dolu Durum (Chat Interface)
+    # Chat Interface
     st.markdown(f"### Chatting with: {st.session_state.pdf_name}")
     
-    # Mesajları Göster
     for msg in st.session_state.messages:
-        # Avatar: Kullanıcı için boş, AI için ikon (OpenAI tarzı)
         avatar = None if msg["role"] == "user" else "🤖"
         
         with st.chat_message(msg["role"], avatar=avatar):
             st.write(msg["content"])
-            
-            # Metadata (Varsa, minimalist şekilde göster)
+
             if msg["role"] == "assistant" and "metadata" in msg and msg["metadata"]["sources"]:
                 with st.expander("View Sources", expanded=False):
                     for src in msg["metadata"]["sources"]:
                         st.caption(f"📄 Source: {Path(src).name}")
 
-    # Input Alanı
     if question := st.chat_input("Message PDF AI..."):
-        # Kullanıcı mesajını ekle
         st.session_state.messages.append({"role": "user", "content": question})
         with st.chat_message("user"):
             st.write(question)
         
-        # Cevap Üret
         with st.chat_message("assistant", avatar="🤖"):
-            # Boş bir alan yaratıp akışkan yazı efekti verebiliriz (isteğe bağlı) veya spinner
             with st.spinner("Thinking..."):
                 start_time = time.time()
                 
-                # Search (Değişken ismi korundu)
                 query_vec = embed_query_text([question])[0]
                 store = QdrantStorage()
                 found = store.search(query_vec, 5)
@@ -308,10 +286,8 @@ else:
                     answer = response.json()["choices"][0]["message"]["content"]
                     sources = found["sources"]
                 
-                # Cevabı yaz
                 st.write(answer)
                 
-                # Geçmişe kaydet
                 st.session_state.messages.append({
                     "role": "assistant",
                     "content": answer,
